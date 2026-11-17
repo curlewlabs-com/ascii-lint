@@ -1,0 +1,13 @@
+name: ascii-lint
+description: Fail on any non-ASCII character in the repository's tracked text files.
+author: Curlew Labs
+branding:
+  icon: type
+  color: gray-dark
+
+runs:
+  using: composite
+  steps:
+    - name: Report non-ASCII characters
+      shell: sh
+      run: '"$GITHUB_ACTION_PATH/action/run.sh"'
