@@ -34,7 +34,7 @@ As a GitHub Action, after a checkout. Pin it by commit:
 As a command, from inside a repository:
 
 ```sh
-pip install git+https://github.com/curlewlabs-com/ascii-lint@v0.2.0
+pip install git+https://github.com/curlewlabs-com/ascii-lint@v0.2.1
 ascii-lint            # every tracked file, with .ascii-lint.toml
 ascii-lint a.md b.py  # just these
 ```
@@ -42,6 +42,12 @@ ascii-lint a.md b.py  # just these
 It prints one line per character and exits 1 on any finding. It also exits 1,
 with the reason on stderr, when it could not run (no `git`, not a repository, an
 unreadable file), so a lint that did not run never reads as clean.
+
+The action imports from its own package alone, whatever `PYTHONPATH` the job
+sets. The command, like any Python program, imports through the `PYTHONPATH` it
+inherits, ahead of the standard library: leave out any entry naming the
+repository being judged, or a file there named like a module the lint imports
+runs in its place.
 
 ## What it reads
 

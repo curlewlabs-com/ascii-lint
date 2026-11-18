@@ -68,17 +68,23 @@ jobs:
           persist-credentials: false
       - name: This repository passes
         uses: ./
-      - name: Add a finding, and a module named like the lint's
+      - name: Add a finding, and modules named like the lint's and subprocess
         # A repository being judged can hold a file named like the lint's own
-        # package; were it imported in place of the lint, it would pass.
+        # package or a standard module it imports; were either imported in its
+        # place, the lint would pass. The subprocess stand-in lists no files.
         run: |
           printf 'a \342\200\224 b\n' > dash.txt
           printf 'pass\n' > ascii_lint.py
-          git add dash.txt ascii_lint.py
+          printf 'class CalledProcessError(Exception):\n    pass\n\n\nclass Listed:\n    stdout = b""\n\n\ndef run(*args, **kwargs):\n    return Listed()\n' > subprocess.py
+          git add dash.txt ascii_lint.py subprocess.py
       - name: The action reports the finding
         id: judged
         continue-on-error: true
         uses: ./
+        # An inherited import path naming the judged directory must not put
+        # those files back in front of the lint's own.
+        env:
+          PYTHONPATH: .
       - name: Require that it failed
         env:
           OUTCOME: ${{ steps.judged.outcome }}
