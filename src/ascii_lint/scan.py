@@ -1,4 +1,5 @@
-"""Judge one file's bytes: where a text file holds anything outside ASCII.
+"""Judge one file's bytes: where a text file holds anything outside ASCII that
+the repository's policy does not exempt.
 
 A file is binary, and skipped, when its first BINARY_PROBE bytes hold a NUL:
 the test git itself uses to decide whether to show a diff as text, so a file
@@ -9,6 +10,8 @@ from __future__ import annotations
 
 import unicodedata
 from dataclasses import dataclass
+
+from ascii_lint.policy import Policy
 
 BINARY_PROBE = 8000
 
@@ -35,7 +38,15 @@ def _describe(char: str) -> str:
     return f"U+{ord(char):04X} {name}"
 
 
-def scan(path: str, data: bytes) -> list[Finding]:
+def scan(
+    path: str,
+    data: bytes,
+    policy: Policy | None = None,
+    used: set[int] | None = None,
+) -> list[Finding]:
+    """The findings in one file. Each exemption that covered a character here
+    has its number added to `used`, so a caller judging many files can tell
+    which exemptions none of them needed."""
     if is_binary(data):
         return []
     findings: list[Finding] = []
@@ -45,6 +56,8 @@ def scan(path: str, data: bytes) -> list[Finding]:
         try:
             text = raw.decode("utf-8")
         except UnicodeDecodeError as error:
+            # No exemption covers this: there is no character to exempt, only
+            # bytes in an encoding the policy cannot name.
             findings.append(
                 Finding(
                     path,
@@ -55,6 +68,12 @@ def scan(path: str, data: bytes) -> list[Finding]:
             )
             continue
         for column, char in enumerate(text, start=1):
-            if not char.isascii():
-                findings.append(Finding(path, number, column, _describe(char)))
+            if char.isascii():
+                continue
+            covering = policy.covering(path, char) if policy else []
+            if covering:
+                if used is not None:
+                    used.update(e.number for e in covering)
+                continue
+            findings.append(Finding(path, number, column, _describe(char)))
     return findings

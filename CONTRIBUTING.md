@@ -25,8 +25,8 @@ ruff format --check . && ruff check . && mypy && shellcheck action/run.sh
 - **Tests ship with the change.** A bug fix or a feature includes a test in the
   same pull request. A test that guards a failure mode says which one.
 - **Fail closed.** Anything the lint cannot read is an error, with the reason.
-- **No exemption list.** An option is added only for a user who cannot use the
-  lint without it.
+- **Exemptions are the repository's, with reasons.** An option is added only for
+  a user who cannot use the lint without it.
 - **Standard library only at runtime.** `git` is the only other requirement.
 - **The action's steps call scripts.** Each `run:` in `action.yml` is one call
   of an executable file in this repository, so shellcheck reads all of the shell
