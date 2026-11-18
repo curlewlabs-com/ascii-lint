@@ -30,6 +30,7 @@ import re
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, TypeGuard
 
 from ascii_lint import files
 
@@ -69,8 +70,19 @@ class Policy:
         return [e for e in self.exemptions if e.covers(path, char)]
 
 
+# isinstance narrows a parsed TOML value to a container of Unknown, which strict
+# pyright rejects; these keep the isinstance test and state what TOML yields:
+# arrays and tables whose keys are strings.
+def _is_list(value: object) -> TypeGuard[list[Any]]:
+    return isinstance(value, list)
+
+
+def _is_table(value: object) -> TypeGuard[dict[str, Any]]:
+    return isinstance(value, dict)
+
+
 def _patterns(value: object, where: str, key: str) -> tuple[re.Pattern[str], ...]:
-    if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+    if not _is_list(value) or not all(isinstance(v, str) for v in value):
         raise PolicyError(f"{where}: {key} must be a list of strings")
     try:
         return tuple(re.compile(v) for v in value)
@@ -80,7 +92,7 @@ def _patterns(value: object, where: str, key: str) -> tuple[re.Pattern[str], ...
 
 def _exemption(number: int, table: object) -> Exemption:
     where = f"exemption {number}"
-    if not isinstance(table, dict):
+    if not _is_table(table):
         raise PolicyError(f"{where} is not a table")
     unknown = sorted(set(table) - _KEYS)
     if unknown:
@@ -114,7 +126,7 @@ def parse(text: str) -> Policy:
     if unknown:
         raise PolicyError(f"unknown key {', '.join(unknown)}")
     tables = document.get("exempt", [])
-    if not isinstance(tables, list):
+    if not _is_list(tables):
         raise PolicyError("exempt must be an array of tables, [[exempt]]")
     return Policy(tuple(_exemption(n, t) for n, t in enumerate(tables, start=1)))
 

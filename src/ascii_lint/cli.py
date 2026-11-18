@@ -92,7 +92,7 @@ def repository_root_if_any(cwd: Path) -> Path | None:
 
 def files_in_listing(listing: bytes) -> list[str]:
     """The file paths in `git ls-files -z --stage` output."""
-    names = []
+    names: list[str] = []
     for entry in listing.split(b"\0"):
         if not entry:
             continue
