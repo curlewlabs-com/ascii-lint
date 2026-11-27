@@ -34,7 +34,7 @@ As a GitHub Action, after a checkout. Pin it by commit:
 As a command, from inside a repository:
 
 ```sh
-pip install git+https://github.com/curlewlabs-com/ascii-lint@v0.2.2
+pip install git+https://github.com/curlewlabs-com/ascii-lint@v0.3.0
 ascii-lint            # every tracked file, with .ascii-lint.toml
 ascii-lint a.md b.py  # just these
 ```
