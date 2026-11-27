@@ -43,6 +43,24 @@ It prints one line per character and exits 1 on any finding. It also exits 1,
 with the reason on stderr, when it could not run (no `git`, not a repository, an
 unreadable file), so a lint that did not run never reads as clean.
 
+As a library, when the caller reads the files: a build that holds each file at
+a sandbox path, often through a symlink the command refuses to follow. Hand
+`judge` each file's path from the repository root, which the exemptions match
+and a finding names, with its bytes:
+
+```python
+import ascii_lint
+
+policy = ascii_lint.parse(config_text)  # raises ascii_lint.PolicyError
+verdict = ascii_lint.judge([("docs/a.md", data)], policy)
+for finding in verdict.findings:
+    print(finding)
+```
+
+`verdict.unused` holds the exemptions that covered nothing in those files. Like
+`--check-unused` below, report it only when they are every file the exemptions
+are for. A file the caller could not read is the caller's to fail on.
+
 The action imports from its own package alone, whatever `PYTHONPATH` the job
 sets. The command, like any Python program, imports through the `PYTHONPATH` it
 inherits, ahead of the standard library: leave out any entry naming the

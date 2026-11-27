@@ -38,7 +38,7 @@ from pathlib import Path
 
 from ascii_lint import files
 from ascii_lint.policy import CONFIG_NAME, Policy, PolicyError, load
-from ascii_lint.scan import Finding, scan
+from ascii_lint.scan import Verdict, judge
 
 
 class CouldNotRun(Exception):
@@ -107,22 +107,18 @@ def tracked_files(root: Path) -> list[str]:
     return files_in_listing(_git(root, "ls-files", "-z", "--stage"))
 
 
-def check(
-    items: Sequence[tuple[str, Path, str]],
-    policy: Policy | None = None,
-    used: set[int] | None = None,
-) -> list[Finding]:
+def check(items: Sequence[tuple[str, Path, str]], policy: Policy) -> Verdict:
     """Each item is the path the policy matches and the report names, from the
     repository root, and the base and name the file is read through as given,
     so a symlink on the way as written is still refused."""
-    findings: list[Finding] = []
-    for shown, base, name in items:
+
+    def read(base: Path, name: str) -> bytes:
         try:
-            data = files.read(base, name)
+            return files.read(base, name)
         except files.Unreadable as error:
             raise CouldNotRun(str(error)) from error
-        findings.extend(scan(shown, data, policy, used))
-    return findings
+
+    return judge(((shown, read(base, name)) for shown, base, name in items), policy)
 
 
 def from_root(root: Path, cwd: Path, name: str) -> str:
@@ -216,7 +212,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="files to read instead of every tracked file",
     )
     args = parser.parse_args(argv)
-    used: set[int] = set()
     cwd = Path.cwd()
     try:
         if args.files:
@@ -233,15 +228,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             items = [(name, root, name) for name in tracked_files(root)]
             check_unused = True
         policy, source = read_policy(args.config, root, cwd)
-        findings = check(items, policy, used)
+        verdict = check(items, policy)
     except CouldNotRun as error:
         print(f"ERROR: ascii-lint could not run: {error}", file=sys.stderr)
         return 1
-    for finding in findings:
+    for finding in verdict.findings:
         print(finding)
-    unused = (
-        [e for e in policy.exemptions if e.number not in used] if check_unused else []
-    )
+    unused = verdict.unused if check_unused else ()
     for exemption in unused:
         print(f"{source}: {exemption} covered nothing; delete it")
-    return 1 if findings or unused else 0
+    return 1 if verdict.findings or unused else 0

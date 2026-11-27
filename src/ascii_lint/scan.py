@@ -1,5 +1,6 @@
-"""Judge one file's bytes: where a text file holds anything outside ASCII that
-the repository's policy does not exempt.
+"""Judge files' bytes against a repository's policy: where a text file holds
+anything outside ASCII that the policy does not exempt (scan), and, over a set
+of files, which exemptions none of them needed (judge).
 
 A file is binary, and skipped, when its first BINARY_PROBE bytes hold a NUL:
 the test git itself uses to decide whether to show a diff as text, so a file
@@ -9,9 +10,10 @@ this skips is one a reviewer never saw as text either.
 from __future__ import annotations
 
 import unicodedata
+from collections.abc import Iterable
 from dataclasses import dataclass
 
-from ascii_lint.policy import Policy
+from ascii_lint.policy import Exemption, Policy
 
 BINARY_PROBE = 8000
 
@@ -77,3 +79,25 @@ def scan(
                 continue
             findings.append(Finding(path, number, column, _describe(char)))
     return findings
+
+
+@dataclass(frozen=True)
+class Verdict:
+    findings: tuple[Finding, ...]
+    # The exemptions that covered no character in the files judged. That is a
+    # finding only when those files are every file the exemptions are for:
+    # judged alone, a subset says nothing about what the rest still needs.
+    unused: tuple[Exemption, ...]
+
+
+def judge(files: Iterable[tuple[str, bytes]], policy: Policy) -> Verdict:
+    """Each file is its path from the repository root, which the policy matches
+    and a finding names, and its bytes. The caller reads them, so a caller that
+    holds a file under another name (a build's sandbox path) judges it as the
+    path it stands for; an iterator is consumed one file at a time."""
+    used: set[int] = set()
+    findings: list[Finding] = []
+    for path, data in files:
+        findings.extend(scan(path, data, policy, used))
+    unused = tuple(e for e in policy.exemptions if e.number not in used)
+    return Verdict(tuple(findings), unused)
