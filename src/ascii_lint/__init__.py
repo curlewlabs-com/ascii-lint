@@ -3,9 +3,9 @@
 The command (cli.py) is the interface that finds and reads the files itself.
 `judge` (scan.py) is the interface for a caller that reads them: a build that
 holds each file at a sandbox path, often through a symlink the command refuses,
-hands over each file's path from the repository root with its bytes, and the
-policy from `parse`, and gets back the findings and the exemptions that covered
-nothing.
+hands over each file's canonical repository-relative path with its bytes and
+the policy from `parse`. For tracked files use the exact Git index spelling.
+The result gives the findings and the exemptions that covered nothing.
 """
 
 import sys

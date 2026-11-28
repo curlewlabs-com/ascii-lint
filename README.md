@@ -45,8 +45,10 @@ unreadable file), so a lint that did not run never reads as clean.
 
 As a library, when the caller reads the files: a build that holds each file at
 a sandbox path, often through a symlink the command refuses to follow. Hand
-`judge` each file's path from the repository root, which the exemptions match
-and a finding names, with its bytes:
+`judge` each file's canonical repository-relative path with its bytes. Use
+slash separators and omit `.` and `..` components. For tracked files, use the
+exact spelling from the Git index. Exemptions match the supplied path, so a
+prefix such as `./` can change which patterns apply.
 
 ```python
 import ascii_lint
@@ -124,12 +126,14 @@ are judged it is not, since the rest of the repository may need it; pass
 a build that hands the lint its file list does. `--config FILE` reads the
 exemptions from another file, named from the current directory.
 
-A named file is matched by its path from the repository root, however it was
-spelled (`./a`, `sub/../a`, an absolute path) and wherever the lint is run, so
-an exemption decides the same way for it as in a whole-repository run. A name
-spelled unlike the directory entry it opens, or unlike the index's spelling of
-the same file, is refused rather than guessed at. The config is read as the
-files are: never through a symlink, and only from a regular file.
+A file named on the command line is matched by its path from the repository
+root, however it was spelled (`./a`, `sub/../a`, an absolute path) and wherever
+the lint is run, so an exemption decides the same way for it as in a
+whole-repository run. A name spelled unlike the directory entry it opens, or
+unlike the index's spelling of the same file, is refused rather than guessed
+at. The config is read as the files are: never through a symlink, and only from
+a regular file. Library callers supply the matching path as described in
+[How to use it](#how-to-use-it).
 
 A config that is not this shape (a table without a reason, an unknown key, a bad
 pattern) is an error, never an empty policy.

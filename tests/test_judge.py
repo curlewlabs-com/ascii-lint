@@ -43,6 +43,20 @@ class Judge(unittest.TestCase):
             ["a.md:1:4: U+00E9 LATIN SMALL LETTER E WITH ACUTE"],
         )
 
+    def test_an_exemption_number_is_local_to_its_parsed_policy(self) -> None:
+        # Composing policies must not hide an unused exemption when both
+        # inputs assign its display number to one of their exemptions.
+        names = ascii_lint.parse(POLICY).exemptions[0]
+        listings = ascii_lint.parse(
+            "[[exempt]]\nreason = 'listings'\npaths = ['^meta/']\n"
+        ).exemptions[0]
+        policy = ascii_lint.Policy((names, listings))
+
+        verdict = ascii_lint.judge([("docs/a.md", f"caf{E_ACUTE}\n".encode())], policy)
+
+        self.assertEqual(verdict.findings, ())
+        self.assertEqual(verdict.unused, (listings,))
+
 
 if __name__ == "__main__":
     unittest.main()
