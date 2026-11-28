@@ -10,7 +10,7 @@ Do not open a public issue for security vulnerabilities.
 
 ## Scope
 
-The lint reads files and runs `git ls-files`. It never runs what it reads. The
+The command reads files and runs `git ls-files`. It never runs what it reads. The
 security surface is:
 
 - **The `git` it runs.** This is the first `git` on `PATH`, trusted the way
@@ -22,6 +22,10 @@ security surface is:
 - **The policy it reads.** `.ascii-lint.toml`, or the file `--config` names, is
   parsed as TOML and its patterns compiled as Python regular expressions. It is
   the repository's own, trusted the way its other files are.
+- **Library callers.** `judge` works with the paths and bytes supplied by its
+  caller. The caller is responsible for safe reads, treating read failures as
+  errors, and supplying the canonical repository-relative path for matching
+  exemptions. See [How to use it](README.md#how-to-use-it).
 - **A false clean.** A non-ASCII character in a tracked text file that the lint
   passes is a defect in what the lint promises. Report it as a bug, or privately
   if you think it matters more than that.

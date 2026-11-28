@@ -86,7 +86,7 @@ def _patterns(value: object, where: str, key: str) -> tuple[re.Pattern[str], ...
         raise PolicyError(f"{where}: {key} must be a list of strings")
     try:
         return tuple(re.compile(v) for v in value)
-    except re.error as error:
+    except (re.error, OverflowError, RecursionError, ValueError) as error:
         raise PolicyError(f"{where}: {key} holds a bad pattern: {error}") from error
 
 
@@ -120,7 +120,7 @@ def _exemption(number: int, table: object) -> Exemption:
 def parse(text: str) -> Policy:
     try:
         document = tomllib.loads(text)
-    except tomllib.TOMLDecodeError as error:
+    except (ValueError, RecursionError) as error:
         raise PolicyError(f"not TOML: {error}") from error
     unknown = sorted(set(document) - {"exempt"})
     if unknown:

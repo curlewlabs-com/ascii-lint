@@ -34,7 +34,7 @@ As a GitHub Action, after a checkout. Pin it by commit:
 As a command, from inside a repository:
 
 ```sh
-pip install git+https://github.com/curlewlabs-com/ascii-lint@v0.2.2
+pip install git+https://github.com/curlewlabs-com/ascii-lint@v0.3.0
 ascii-lint            # every tracked file, with .ascii-lint.toml
 ascii-lint a.md b.py  # just these
 ```
@@ -42,6 +42,26 @@ ascii-lint a.md b.py  # just these
 It prints one line per character and exits 1 on any finding. It also exits 1,
 with the reason on stderr, when it could not run (no `git`, not a repository, an
 unreadable file), so a lint that did not run never reads as clean.
+
+As a library, when the caller reads the files: a build that holds each file at
+a sandbox path, often through a symlink the command refuses to follow. Hand
+`judge` each file's canonical repository-relative path with its bytes. Use
+slash separators and omit `.` and `..` components. For tracked files, use the
+exact spelling from the Git index. Exemptions match the supplied path, so a
+prefix such as `./` can change which patterns apply.
+
+```python
+import ascii_lint
+
+policy = ascii_lint.parse(config_text)  # raises ascii_lint.PolicyError
+verdict = ascii_lint.judge([("docs/a.md", data)], policy)
+for finding in verdict.findings:
+    print(finding)
+```
+
+`verdict.unused` holds the exemptions that covered nothing in those files. Like
+`--check-unused` below, report it only when they are every file the exemptions
+are for. A file the caller could not read is the caller's to fail on.
 
 The action imports from its own package alone, whatever `PYTHONPATH` the job
 sets. The command, like any Python program, imports through the `PYTHONPATH` it
@@ -106,12 +126,14 @@ are judged it is not, since the rest of the repository may need it; pass
 a build that hands the lint its file list does. `--config FILE` reads the
 exemptions from another file, named from the current directory.
 
-A named file is matched by its path from the repository root, however it was
-spelled (`./a`, `sub/../a`, an absolute path) and wherever the lint is run, so
-an exemption decides the same way for it as in a whole-repository run. A name
-spelled unlike the directory entry it opens, or unlike the index's spelling of
-the same file, is refused rather than guessed at. The config is read as the
-files are: never through a symlink, and only from a regular file.
+A file named on the command line is matched by its path from the repository
+root, however it was spelled (`./a`, `sub/../a`, an absolute path) and wherever
+the lint is run, so an exemption decides the same way for it as in a
+whole-repository run. A name spelled unlike the directory entry it opens, or
+unlike the index's spelling of the same file, is refused rather than guessed
+at. The config is read as the files are: never through a symlink, and only from
+a regular file. Library callers supply the matching path as described in
+[How to use it](#how-to-use-it).
 
 A config that is not this shape (a table without a reason, an unknown key, a bad
 pattern) is an error, never an empty policy.

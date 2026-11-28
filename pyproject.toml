@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "ascii-lint"
-version = "0.2.2"
+version = "0.3.0"
 description = "Report every non-ASCII character in a repository's tracked text, by codepoint and name."
 readme = "README.md"
 license = "MIT OR Apache-2.0"
