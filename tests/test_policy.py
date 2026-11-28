@@ -47,6 +47,34 @@ class Reading(unittest.TestCase):
                     parse(text)
                 self.assertIn(message, str(raised.exception))
 
+    def test_pattern_compiler_limits_are_policy_errors(self) -> None:
+        # A pattern can reach the engine's limit before it raises a syntax
+        # error. Callers still need the exemption and field that failed.
+        overflow = "a{4294967296}"
+        nested = "(" * 2000 + "a" + ")" * 2000
+        long_repeat = "a{" + "9" * 5000 + "}"
+        for paths, except_paths, field in (
+            (overflow, "", "paths"),
+            ("", overflow, "except_paths"),
+            (nested, "", "paths"),
+            (long_repeat, "", "paths"),
+        ):
+            with self.subTest(field=field, pattern_length=len(paths or except_paths)):
+                text = (
+                    "[[exempt]]\nreason = 'r'\n"
+                    f"paths = ['{paths}']\nexcept_paths = ['{except_paths}']\n"
+                )
+                with self.assertRaisesRegex(
+                    PolicyError, f"exemption 1: {field} holds a bad pattern"
+                ):
+                    parse(text)
+
+    def test_an_unreadable_toml_value_is_a_policy_error(self) -> None:
+        # A document can exceed the decoder's limits before policy validation.
+        for value in ("[" * 2000 + "0" + "]" * 2000, "9" * 5000):
+            with self.assertRaises(PolicyError):
+                parse(f"exempt = {value}")
+
 
 class Covering(unittest.TestCase):
     def test_paths_are_searched_and_except_paths_win(self) -> None:
