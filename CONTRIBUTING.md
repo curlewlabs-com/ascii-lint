@@ -61,7 +61,14 @@ tag immutable.
 
 1. Bump `version` in `pyproject.toml` and merge that to `main`.
 2. Tag the merge commit `vMAJOR.MINOR.PATCH` and push the tag.
-3. Publish it: `gh release create vMAJOR.MINOR.PATCH --verify-tag`.
+3. Near the top of `notes.md`, add an `## Install` section with the command
+   below. Replace `<tag>` with the exact release tag, including its `v` prefix.
+
+   ```sh
+   pip install 'git+https://github.com/curlewlabs-com/ascii-lint@<tag>'
+   ```
+
+4. Publish with `gh release create vMAJOR.MINOR.PATCH --verify-tag --notes-file notes.md`.
 
 ## License
 

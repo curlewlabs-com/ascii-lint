@@ -31,10 +31,11 @@ As a GitHub Action, after a checkout. Pin it by commit:
 - uses: curlewlabs-com/ascii-lint@<sha> # vX.Y.Z
 ```
 
-As a command, from inside a repository:
+Run the command from inside a repository. Replace `<tag>` with the tag shown
+on the [latest release page](https://github.com/curlewlabs-com/ascii-lint/releases/latest).
 
 ```sh
-pip install git+https://github.com/curlewlabs-com/ascii-lint@v0.3.0
+pip install 'git+https://github.com/curlewlabs-com/ascii-lint@<tag>'
 ascii-lint            # every tracked file, with .ascii-lint.toml
 ascii-lint a.md b.py  # just these
 ```
